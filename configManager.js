@@ -9,7 +9,7 @@ class ConfigManager {
         code: '1262',
         name: 'Fall 2025'
       },
-      phoneNumbers: ['6502820455'],
+      phoneNumbers: [],
       watchedCourses: {}
     };
     this.config = this.loadConfig();
