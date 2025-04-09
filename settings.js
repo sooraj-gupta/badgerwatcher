@@ -9,6 +9,9 @@ async function initSettings() {
     
     // Update the UI with loaded phone numbers
     updatePhoneList();
+    
+    // Set API key if available
+    document.getElementById('madgradesApiKey').value = settings.madGradesApiKey || '';
   } catch (error) {
     console.error('Failed to load settings:', error);
   }
@@ -93,11 +96,18 @@ function formatPhoneNumber(phoneNumber) {
 
 async function saveSettings() {
   try {
-    await window.electronAPI.saveSettings({ phoneNumbers });
-    window.close();
+    const madgradesApiKey = document.getElementById('madgradesApiKey').value.trim();
+    
+    const settings = {
+      phoneNumbers: phoneNumbers,
+      madGradesApiKey: madgradesApiKey
+    };
+    
+    await window.electronAPI.saveSettings(settings);
+    alert('Settings saved successfully!');
   } catch (error) {
-    console.error("Error saving settings:", error);
-    alert("Failed to save settings. Please try again.");
+    console.error('Failed to save settings:', error);
+    alert('Failed to save settings. Please try again.');
   }
 }
 

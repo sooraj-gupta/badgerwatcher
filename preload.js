@@ -31,5 +31,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openSettings: () => ipcRenderer.send('open-settings'),
   getTerm: () => ipcRenderer.invoke('get-term'),
   setTerm: (term) => ipcRenderer.invoke('set-term', term),
-  getTermOptions: () => ipcRenderer.invoke('get-term-options')
+  getTermOptions: () => ipcRenderer.invoke('get-term-options'),
+  fetchCourseGrades: (courseUuid) => ipcRenderer.invoke('fetch-course-grades', courseUuid),
+  searchCourseUuid: (courseDesignation) => ipcRenderer.invoke('search-course-uuid', courseDesignation),
+  getCourseData: (courseId) => ipcRenderer.invoke('get-course-data', courseId)
 });

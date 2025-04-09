@@ -340,6 +340,117 @@ ipcMain.handle('send-test-message', async (event, phoneNumber) => {
   }
 });
 
+// IPC handler to fetch course grade data
+ipcMain.handle('fetch-course-grades', async (event, courseUuid) => {
+  try {
+    const fetch = (await import('node-fetch')).default;
+    const apiKey = configManager.getMadGradesApiKey() || 'db0b773feba0467688172d87b38f3f95';
+    const url = `https://api.madgrades.com/v1/courses/${courseUuid}/grades`;
+    console.log(courseUuid)
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Token token=${apiKey}`
+      }
+    });
+
+    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching grade data:", error);
+    return null;
+  }
+});
+
+// IPC handler to search for a course UUID by course code
+ipcMain.handle('search-course-uuid', async (event, courseDesignation) => {
+  try {
+    const fetch = (await import('node-fetch')).default;
+    const apiKey = configManager.getMadGradesApiKey() || 'db0b773feba0467688172d87b38f3f95';
+    
+    // Parse the course designation (e.g., "COMP SCI 642")
+    const parts = courseDesignation.split(/\s+/);
+    let subject, number;
+    
+    if (parts.length >= 2) {
+      // Handle cases where subject might be two words (e.g., "COMP SCI")
+      if (parts.length > 2) {
+        subject = parts.slice(0, -1).join(' ');
+        number = parts[parts.length - 1];
+      } else {
+        subject = parts[0];
+        number = parts[1];
+      }
+    } else {
+      console.error("Invalid course designation format:", courseDesignation);
+      return null;
+    }
+    
+    // Encode the query properly
+    const query = encodeURIComponent(`${subject} ${number}`);
+    const url = `https://api.madgrades.com/v1/courses?query=${query}&limit=10`;
+    
+    console.log(`Searching for course with query: ${query}`);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Token token=${apiKey}`
+      }
+    });
+
+    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+    
+    const data = await response.json();
+    
+    // Log results for debugging
+    console.log(`Found ${data.results?.length || 0} potential matches for ${courseDesignation}`);
+    
+    if (!data.results || data.results.length === 0) {
+      console.error("No results found for course:", courseDesignation);
+      return null;
+    }
+    
+    // Find the exact match by checking both subject and course number
+    const exactMatch = data.results.find(course => {
+      const courseSubjects = course.subjects.map(s => s.abbreviation.toUpperCase());
+      return courseSubjects.includes(subject.toUpperCase()) && course.number.toString() === number;
+    });
+    
+    // If we found an exact match, return that UUID
+    if (exactMatch) {
+      console.log(`Found exact match for ${courseDesignation}: ${exactMatch.name} (${exactMatch.uuid})`);
+      return exactMatch.uuid;
+    }
+    
+    // Otherwise return the first result as a fallback
+    console.log(`No exact match found, using first result: ${data.results[0].name} (${data.results[0].uuid})`);
+    return data.results[0].uuid;
+    
+  } catch (error) {
+    console.error("Error searching for course UUID:", error);
+    return null;
+  }
+});
+
+// IPC handler to get data for a specific course
+ipcMain.handle('get-course-data', (event, courseId) => {
+  if (!watchedCourses[courseId]) {
+    return null;
+  }
+  
+  return {
+    courseId,
+    courseDesignation: watchedCourses[courseId].courseDesignation,
+    title: watchedCourses[courseId].title,
+    termCode: watchedCourses[courseId].termCode,
+    subjectCode: watchedCourses[courseId].subjectCode
+  };
+});
+
 // Function to periodically check the course status
 function watchCourse(courseId, course, courseTitle) {
   new Notification({ title: 'Watching', body: `${watchedCourses[courseId].title}` }).show();

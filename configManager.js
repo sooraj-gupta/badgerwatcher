@@ -9,7 +9,7 @@ class ConfigManager {
         code: '1262',
         name: 'Fall 2025'
       },
-      phoneNumbers: ['6502820455'],
+      phoneNumbers: [],
       watchedCourses: {}
     };
     this.config = this.loadConfig();
@@ -89,6 +89,16 @@ class ConfigManager {
     }
     return this.config.watchedCourses;
   }
+  getMadGradesApiKey() {
+    return this.config.madGradesApiKey || 'db0b773feba0467688172d87b38f3f95';
+  }
+  
+  setMadGradesApiKey(apiKey) {
+    this.config.madGradesApiKey = apiKey;
+    this.saveConfig(this.config);
+    return this.config.madGradesApiKey;
+  }
 }
+
 
 module.exports = new ConfigManager();

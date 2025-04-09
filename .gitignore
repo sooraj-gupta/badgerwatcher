@@ -23,3 +23,5 @@ yarn-error.log*
 .vscode/
 *.swp
 *.swo
+
+uw_course_checker-darwin-x64
