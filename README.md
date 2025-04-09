@@ -1,3 +1,6 @@
+Collecting workspace informationHere's an updated README.md that reflects the grade distribution feature we just added to BadgerWatcher:
+
+```markdown
 # BadgerWatcher
 
 <p align="center">
@@ -12,6 +15,8 @@ An app to watch status for UW-Madison courses. Runs locally with an Electron app
 - 👀 Track multiple courses simultaneously
 - 🔔 Real-time notifications when course status changes 
 - 📱 SMS/iMessage notifications (when running on macOS only)
+- 📊 Historical grade distributions for courses
+- 🎓 Professor history and term-by-term grade analysis
 - 🎚️ Change terms (Fall, Spring, Summer)
 - 💾 Persistent settings and course tracking
 - Runs Locally
@@ -43,7 +48,16 @@ npm start
 3. **Search for courses**: Type course names or numbers in the search bar
 4. **Track courses**: Click the eye icon to start watching a course
 5. **Monitor status**: The app will show current status (Open, Waitlisted, Closed) with seat counts
-6. **Get notifications**: You'll receive desktop notifications when course status changes
+6. **View grade history**: Click the chart icon next to any course to view historical grade distributions
+7. **Get notifications**: You'll receive desktop notifications when course status changes
+
+## Grade Distribution Feature
+
+View historical course grades to help you make informed decisions:
+- See average GPA for any course over time
+- Compare instructor grading patterns
+- Analyze A-rate percentages across different semesters
+- View detailed term-by-term breakdown of grades
 
 ## iMessage Notifications (macOS only)
 
@@ -63,6 +77,7 @@ Settings are saved to app-config.json and include:
 
 - Node.js
 - npm
+- Chart.js (automatically installed with npm)
 - macOS for iMessage notifications
 
 ## Contributing
@@ -72,6 +87,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Acknowledgments
 
 - University of Wisconsin-Madison for the public course API
+- MadGrades API for historical course grade data
 
 ## Disclaimer
 
