@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings</title>
+  <link rel="stylesheet" href="settings.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+  <div class="settings-container">
+    <div class="settings-sidebar">
+      <br/>
+      <div class="settings-title">Settings</div>
+      <ul class="settings-nav">
+        <li class="active"><i class="fas fa-bell"></i> Notifications</li>
+      </ul>
+    </div>
+    
+    <div class="settings-content">
+      <div class="settings-section">
+        <h2>Notification Numbers</h2>
+        <p class="settings-description">Add phone numbers to receive iMessage notifications when course status changes.</p>
+        
+        <div class="form-row">
+          <div class="input-group">
+            <input type="text" id="phoneInput" placeholder="Enter phone number">
+            <button class="add-btn" onclick="addPhone()">Add</button>
+          </div>
+        </div>
+        
+        <div class="phone-list-container">
+          <table id="phoneList" class="phone-list">
+            <thead>
+              <tr>
+                <th>Phone Number</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Phone numbers will be dynamically added here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>

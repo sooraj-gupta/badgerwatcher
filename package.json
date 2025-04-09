@@ -1,0 +1,27 @@
+{
+  "name": "uw_course_checker",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "electron": "^33.2.0"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2",
+    "nodemailer": "^6.9.16"
+  },
+  "build": {
+   "appId": "com.example.badgerwatcher",
+   "mac": {
+     "category": "public.app-category.utilities",
+     "icon": "badgerwatcher.icns"
+   }
+  }
+}
