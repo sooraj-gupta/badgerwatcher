@@ -1,6 +1,3 @@
-Collecting workspace informationHere's an updated README.md that reflects the grade distribution feature we just added to BadgerWatcher:
-
-```markdown
 # BadgerWatcher
 
 <p align="center">
