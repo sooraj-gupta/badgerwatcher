@@ -100,5 +100,4 @@ class ConfigManager {
   }
 }
 
-
 module.exports = new ConfigManager();
