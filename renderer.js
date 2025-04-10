@@ -630,9 +630,9 @@ function updateModalCourseStatus(courseId) {
 // Helper function to format term code to semester and year
 function formatTermCode(termCode) {
   const termMap = {
-    '2': 'Spring',
-    '4': 'Summer',
-    '6': 'Fall'
+    '4': 'Spring',
+    '6': 'Summer',
+    '2': 'Fall'
   };
   
   const termStr = termCode.toString();
@@ -642,7 +642,10 @@ function formatTermCode(termCode) {
   let year;
   if (centuryYear === '112') {
     year = '2012';
-  } else {
+  } else if (termMap[term] == "Fall") {
+    year = '20' + (parseInt(centuryYear.substring(1)) - 1);
+  }
+  else {
     year = '20' + centuryYear.substring(1);
   }
   
