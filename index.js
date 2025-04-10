@@ -8,6 +8,24 @@ let watchedCourses = {};
 let settingsWindow;
 let courseIntervals = {};
 
+// Add this variable at the top of your file with other state variables
+let apiStatus = {
+  isLive: false,
+  lastUpdate: Date.now()
+};
+
+// Add a simple function to update the API status
+function updateApiLiveStatus(isLive) {
+  apiStatus.isLive = isLive;
+  apiStatus.lastUpdate = Date.now();
+  
+  const mainWindow = BrowserWindow.getAllWindows()[0];
+  if (!mainWindow) return;
+  
+  mainWindow.webContents.send('api-live-status', apiStatus);
+}
+
+
 // Term options
 const termOptions = [
   { code: '1262', name: 'Fall 2025' },
@@ -116,7 +134,10 @@ ipcMain.handle('remove-course', (event, courseId) => {
   return { success: true, courseId };
 });
 
-ipcMain.on('open-settings', openSettingsWindow);
+ipcMain.handle('open-settings', () => {
+  openSettingsWindow();
+  return true; // invoke() expects a return value
+});
 
 function openSettingsWindow() {
   if (settingsWindow) {
@@ -128,6 +149,9 @@ function openSettingsWindow() {
     width: 800,
     height: 600,
     transparent: true, // Enables transparent background
+    vibrancy: 'fullscreen-ui',
+    frame: false, // For frameless design
+
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -238,10 +262,13 @@ async function fetchCourseData(courseName) {
   }
 }
 
+
+
 // Function to fetch detailed course data by courseId
 async function fetchCourseDetails(termCode, subjectCode, courseId) {
   const fetch = (await import('node-fetch')).default;
   const url = `https://public.enroll.wisc.edu/api/search/v1/enrollmentPackages/${termCode}/${subjectCode}/${courseId}`;
+  // console.log(url);
   const term = configManager.getTerm();
 
   try {
@@ -262,11 +289,17 @@ async function fetchCourseDetails(termCode, subjectCode, courseId) {
       referrerPolicy: 'strict-origin-when-cross-origin'
     });
 
-    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-    
+    if (!response.ok) 
+    {
+      updateApiLiveStatus(false); // API is not responding correctly
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+  
     const data = await response.json();
+    updateApiLiveStatus(true); // API is working
     return data; // return the detailed course data
   } catch (error) {
+    updateApiLiveStatus(false); // API is not responding
     console.error("Error fetching course details:", error);
     return null;
   }
@@ -317,6 +350,7 @@ ipcMain.handle('add-course', async (event, course) => {
   return { courseId, courseName: course.courseDesignation, courseTitle: course.title };
 });
 
+
 // IPC handler to send a test message
 ipcMain.handle('send-test-message', async (event, phoneNumber) => {
   try {
@@ -346,7 +380,7 @@ ipcMain.handle('fetch-course-grades', async (event, courseUuid) => {
     const fetch = (await import('node-fetch')).default;
     const apiKey = configManager.getMadGradesApiKey() || 'db0b773feba0467688172d87b38f3f95';
     const url = `https://api.madgrades.com/v1/courses/${courseUuid}/grades`;
-    console.log(courseUuid)
+    // console.log(courseUuid)
     
     const response = await fetch(url, {
       method: 'GET',
@@ -422,7 +456,7 @@ ipcMain.handle('search-course-uuid', async (event, courseDesignation) => {
     
     // If we found an exact match, return that UUID
     if (exactMatch) {
-      console.log(`Found exact match for ${courseDesignation}: ${exactMatch.name} (${exactMatch.uuid})`);
+      // console.log(`Found exact match for ${courseDesignation}: ${exactMatch.name} (${exactMatch.uuid})`);
       return exactMatch.uuid;
     }
     
@@ -447,86 +481,445 @@ ipcMain.handle('get-course-data', (event, courseId) => {
     courseDesignation: watchedCourses[courseId].courseDesignation,
     title: watchedCourses[courseId].title,
     termCode: watchedCourses[courseId].termCode,
-    subjectCode: watchedCourses[courseId].subjectCode
+    subjectCode: watchedCourses[courseId].subjectCode,
+    data: watchedCourses[courseId].data
   };
+});
+
+// IPC handler to fetch syllabus/course description data
+ipcMain.handle('fetch-course-syllabus', async (event, courseData) => {
+  try {
+    if (!courseData) return null;
+    
+    // Extract course data from saved watchedCourses if we only have the ID
+    if (typeof courseData === 'string' && watchedCourses[courseData]) {
+      courseData = watchedCourses[courseData];
+    }
+    
+    // Extract description from instructor-provided details if available
+    const detailedData = Array.isArray(courseData.data) ? courseData.data : [];
+    
+    for (let section of detailedData) {
+      if (section.instructorProvidedClassDetails) {
+        return {
+          description: section.instructorProvidedClassDetails.instructorDescription,
+          format: section.instructorProvidedClassDetails.format,
+          topics: section.instructorProvidedClassDetails.typicalTopicsAndOrSchedule,
+          learningOutcomes: section.instructorProvidedClassDetails.learningOutcome
+        };
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching course syllabus:', error);
+    return null;
+  }
+});
+
+// IPC handler to fetch similar courses
+
+
+// Fix the fetchSimilarCourses handler to properly extract enrollment information
+// Fix the fetchSimilarCourses handler to properly extract enrollment information
+ipcMain.handle('fetch-similar-courses', async (event, subjectCode, courseId) => {
+  try {
+    const term = configManager.getTerm();
+    const fetch = (await import('node-fetch')).default;
+
+    console.log("Fetching similar courses for courseId:", courseId);
+    
+    // Get current course data for comparison
+    const currentCourse = watchedCourses[courseId];
+    if (!currentCourse) {
+      console.error("Current course not found in watched courses");
+      return [];
+    }
+
+    console.log("Found current course:", currentCourse.courseDesignation);
+    
+    // Get the course catalog number to find similar level courses
+    const catalogNumber = currentCourse.data[0]?.catalogNumber || '';
+    const courseLevel = catalogNumber.charAt(0); // First digit gives course level (e.g., 500-level)
+    
+    // Construct API URL to search for similar courses by subject and level
+    const url = "https://public.enroll.wisc.edu/api/search/v1";
+    
+    const payload = {
+      selectedTerm: term.code,
+      queryString: `${subjectCode} ${courseLevel}*`,
+      filters: [
+        {
+          has_child: {
+            type: "enrollmentPackage",
+            query: {
+              bool: {
+                must: [
+                  { match: { published: true } }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      page: 1,
+      pageSize: 8, // Increase to show more options
+      sortOrder: "SUBJECT_COURSE"
+    };
+
+    console.log("Searching for similar courses with payload:", JSON.stringify(payload));
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+    const data = await response.json();
+    
+    if (!data.hits || data.hits.length === 0) {
+      console.log("No similar courses found");
+      return [];
+    }
+
+    console.log(`Found ${data.hits.length} potential similar courses`);
+    
+    // Filter out the current course
+    const coursesToProcess = data.hits.filter(course => course.courseId !== courseId);
+    console.log(`After filtering current course: ${coursesToProcess.length} courses to process`);
+    
+    // Process each course to get detailed enrollment information
+    const similarCourses = await Promise.all(coursesToProcess.map(async (course) => {
+      console.log(`Processing similar course: ${course.subject.shortDescription} ${course.catalogNumber}`);
+      
+      try {
+        // Use fetchCourseDetails to get accurate enrollment information
+        const courseDetails = await fetchCourseDetails(
+          term.code, 
+          course.subject.subjectCode, 
+          course.courseId
+        );
+        
+        if (!courseDetails || courseDetails.length === 0) {
+          console.log(`No details found for course ${course.courseId}`);
+          return null;
+        }
+        
+        // Get the first section details (usually the primary section)
+        const firstSection = courseDetails[0];
+        
+        // Extract meeting information
+        let meetingTimes = "N/A";
+        let location = "N/A";
+        let instructor = "N/A";
+        let section = "N/A";
+        
+        // Get section number
+        if (firstSection.sections && firstSection.sections.length > 0) {
+          section = `${firstSection.sections[0].type} ${firstSection.sections[0].sectionNumber}`;
+          
+          // Get instructor information
+          if (firstSection.sections[0].instructor) {
+            const instr = firstSection.sections[0].instructor;
+            instructor = `${instr.name?.first || ''} ${instr.name?.last || ''}`.trim();
+          }
+        }
+        
+        // Get meeting information
+        if (firstSection.classMeetings && firstSection.classMeetings.length > 0) {
+          const meeting = firstSection.classMeetings[0];
+          
+          // Format days
+          const days = [];
+          if (meeting.monday) days.push("M");
+          if (meeting.tuesday) days.push("T");
+          if (meeting.wednesday) days.push("W");
+          if (meeting.thursday) days.push("R");
+          if (meeting.friday) days.push("F");
+          
+          // Format times
+          const startTime = formatTime(meeting.meetingTimeStart);
+          const endTime = formatTime(meeting.meetingTimeEnd);
+          meetingTimes = `${days.join("")} ${startTime}-${endTime}`;
+          
+          // Format location
+          if (meeting.building) {
+            location = `${meeting.building.buildingName || ''} ${meeting.room || ''}`.trim();
+          }
+        }
+        
+        // Get accurate enrollment data
+        const enrollmentStatus = firstSection.enrollmentStatus || {};
+        const packageStatus = firstSection.packageEnrollmentStatus || {};
+        
+        // Determine status accurately
+        let status = packageStatus.status || "UNKNOWN";
+        
+        // Calculate seats
+        const capacity = enrollmentStatus.capacity || 0;
+        const enrolled = enrollmentStatus.currentlyEnrolled || 0;
+        const waitlist = enrollmentStatus.waitlistCurrentSize || 0;
+        const waitlistCapacity = enrollmentStatus.waitlistCapacity || 0;
+        const openSeats = Math.max(0, capacity - enrolled);
+        
+        // Determine if course is truly open
+        if (openSeats > 0) {
+          status = "OPEN";
+        } else if (waitlist > 0 || (waitlistCapacity > 0 && waitlistCapacity > waitlist)) {
+          status = "WAITLISTED";
+        } else {
+          status = "CLOSED";
+        }
+        
+        // Build the complete course object with rich details
+        return {
+          id: course.courseId,
+          title: course.title,
+          subject: course.subject.shortDescription,
+          courseNumber: course.catalogNumber,
+          termCode: term.code,
+          status: status,
+          enrollmentCapacity: capacity,
+          enrolled: enrolled,
+          waitlist: waitlist,
+          waitlistCapacity: waitlistCapacity,
+          openSeats: openSeats,
+          section: section,
+          meetingTimes: meetingTimes,
+          location: location,
+          instructor: instructor,
+          // Additional useful information
+          hasRestrictions: firstSection.enrollmentRequirementGroups?.catalogRequirementGroups?.length > 0,
+          gradeComponent: firstSection.sections?.[0]?.gradedComponent === true,
+          instructionMode: firstSection.sections?.[0]?.instructionMode || 'N/A',
+          sessionCode: firstSection.sessionCode || 'N/A'
+        };
+      } catch (error) {
+        console.error(`Error processing similar course ${course.courseId}:`, error);
+        return null;
+      }
+    }));
+    
+    // Filter out null results and sort by open seats first, then by course number
+    const validCourses = similarCourses.filter(course => course !== null);
+    console.log(`Found ${validCourses.length} valid similar courses with detailed information`);
+    
+    return validCourses.sort((a, b) => {
+      // First, sort by status (OPEN first)
+      if (a.status === 'OPEN' && b.status !== 'OPEN') return -1;
+      if (a.status !== 'OPEN' && b.status === 'OPEN') return 1;
+      
+      // If both are OPEN, sort by number of available seats (more seats first)
+      if (a.status === 'OPEN' && b.status === 'OPEN') {
+        if (a.openSeats > b.openSeats) return -1;
+        if (a.openSeats < b.openSeats) return 1;
+      }
+      
+      // If both are WAITLISTED, sort by waitlist size (smaller waitlist first)
+      if (a.status === 'WAITLISTED' && b.status === 'WAITLISTED') {
+        if (a.waitlist < b.waitlist) return -1;
+        if (a.waitlist > b.waitlist) return 1;
+      }
+      
+      // Finally, sort by course number
+      return a.courseNumber.localeCompare(b.courseNumber);
+    });
+      
+  } catch (error) {
+    console.error('Error fetching similar courses:', error);
+    return [];
+  }
+});
+
+
+// Helper function to format time from milliseconds
+function formatTime(timeMillis) {
+  if (!timeMillis) return "N/A";
+  
+  const hours = Math.floor(timeMillis / 3600000);
+  const minutes = Math.floor((timeMillis % 3600000) / 60000);
+  
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const formattedHours = hours % 12 || 12; // Convert 0 to 12
+  const formattedMinutes = minutes.toString().padStart(2, '0');
+  
+  return `${formattedHours}:${formattedMinutes}${ampm}`;
+}
+
+// IPC handler to fetch textbook information
+// Modify the fetchTextbookInfo handler to use existing course data
+ipcMain.handle('fetch-textbook-info', async (event, term, subjectCode, courseNumber, course) => {
+  try {
+    // Instead of making an API call, use the data we already have in course object
+    if (!course || !course.data) {
+      return {
+        hasTextbooks: false,
+        error: "No course data available"
+      };
+    }
+
+    // Find sections with textbook info
+    const textbooks = [];
+    const otherMaterials = [];
+    let sectionNotes = null;
+    let bookstoreLink = `https://www.uwbookstore.com/textbook-search?course=${subjectCode}-${courseNumber}`;
+    
+    // Check each section in the course for textbook information
+    for (const section of course.data) {
+      if (section.sections && section.sections.length > 0) {
+        for (const sectionDetail of section.sections) {
+          if (sectionDetail.classMaterials && sectionDetail.classMaterials.length > 0) {
+            for (const material of sectionDetail.classMaterials) {
+              if (material.materialsDefined === true) {
+                // Get section notes if available
+                if (material.sectionNotes) {
+                  sectionNotes = material.sectionNotes;
+                }
+                
+                // Add textbooks
+                if (material.textbooks && material.textbooks.length > 0) {
+                  material.textbooks.forEach(book => {
+                    // Check if this textbook is not already in our list
+                    if (!textbooks.find(b => b.isbn === book.isbn)) {
+                      textbooks.push({
+                        ...book,
+                        coverImage: book.isbn ? 
+                          `https://covers.openlibrary.org/b/isbn/${book.isbn}-M.jpg` : 
+                          null,
+                        required: book.materialRequirement === "REQUIRED",
+                        price: "Check bookstore",
+                        usedAvailable: true,
+                        rentalAvailable: true,
+                        digitalAvailable: book.isbn ? true : false
+                      });
+                    }
+                  });
+                }
+                
+                // Add other materials
+                if (material.otherMaterials && material.otherMaterials.length > 0) {
+                  material.otherMaterials.forEach(item => {
+                    if (!otherMaterials.find(m => m.description === item.description)) {
+                      otherMaterials.push({
+                        ...item,
+                        required: item.materialRequirement === "REQUIRED"
+                      });
+                    }
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    return {
+      hasTextbooks: textbooks.length > 0 || otherMaterials.length > 0,
+      textbooks,
+      otherMaterials,
+      sectionNotes,
+      bookstoreLink
+    };
+    
+  } catch (error) {
+    console.error('Error processing textbook information:', error);
+    return {
+      hasTextbooks: false,
+      error: error.message
+    };
+  }
 });
 
 // Function to periodically check the course status
 function watchCourse(courseId, course, courseTitle) {
   new Notification({ title: 'Watching', body: `${watchedCourses[courseId].title}` }).show();
 
+  intervalFunction(courseId, course, courseTitle);
+
   // Store the interval ID so we can clear it if needed
   courseIntervals[courseId] = setInterval(async () => {
-    const mainWindow = BrowserWindow.getAllWindows()[0]; 
-    if (!mainWindow) return; // Skip if no window is available
+    await intervalFunction(courseId, course, courseTitle);
+  }
+  , 5000);
+}
+
+async function intervalFunction(courseId, course, courseTitle) {
+  const mainWindow = BrowserWindow.getAllWindows()[0]; 
+  if (!mainWindow) return; // Skip if no window is available
+  
+  mainWindow.webContents.send('course-load', courseId);
+  // console.log(courseId);
+  
+  const detailedCourseData = await fetchCourseDetails(
+    watchedCourses[courseId].termCode, 
+    watchedCourses[courseId].subjectCode, 
+    courseId
+  );
+  
+  if (!detailedCourseData) return { error: "Failed to retrieve course details." };
+  
+  try {       
+    let results = [];
+    let availableSeats = 0;
     
-    mainWindow.webContents.send('course-load', courseId);
-    
-    const detailedCourseData = await fetchCourseDetails(
-      watchedCourses[courseId].termCode, 
-      watchedCourses[courseId].subjectCode, 
-      courseId
-    );
-    
-    if (!detailedCourseData) return { error: "Failed to retrieve course details." };
-    
-    try {       
-      let results = [];
-      let availableSeats = 0;
+    for (let i in detailedCourseData) {
+      results.push(detailedCourseData[i]['packageEnrollmentStatus']);
+      const currentStatus = detailedCourseData[i]['packageEnrollmentStatus'];
+      const previousStatus = watchedCourses[courseId].data[i]['packageEnrollmentStatus'];
       
-      for (let i in detailedCourseData) {
-        results.push(detailedCourseData[i]['packageEnrollmentStatus']);
-        const currentStatus = detailedCourseData[i]['packageEnrollmentStatus'];
-        const previousStatus = watchedCourses[courseId].data[i]['packageEnrollmentStatus'];
+      // Status change notification
+      if ((currentStatus['status'] != previousStatus['status'])) {
+        new Notification({ 
+          title: watchedCourses[courseId].courseDesignation, 
+          body: `${watchedCourses[courseId].title} section is now ${currentStatus['status']}!` 
+        }).show();
         
-        // Status change notification
-        if ((currentStatus['status'] != previousStatus['status'])) {
-          new Notification({ 
-            title: watchedCourses[courseId].courseDesignation, 
-            body: `${watchedCourses[courseId].title} section is now ${currentStatus['status']}!` 
-          }).show();
-          
-          sendiMessageNotification(
-            `🚨${watchedCourses[courseId].courseDesignation} ${currentStatus['status']}!🚨 ` +
-            `${watchedCourses[courseId].title} is ${currentStatus['status']}`
-          );
-        }
-        // Someone dropped a seat
-        else if (currentStatus['status'] == "OPEN" && currentStatus['availableSeats'] > previousStatus['availableSeats']) {
-          new Notification({ 
-            title: watchedCourses[courseId].courseDesignation, 
-            body: `Someone just dropped: ${watchedCourses[courseId].title} – there are now ${currentStatus['availableSeats']} open seats!` 
-          }).show();
-          
-          sendiMessageNotification(
-            `🚨${watchedCourses[courseId].courseDesignation} Someone just dropped!🚨 ` +
-            `${watchedCourses[courseId].title} there are now ${currentStatus['availableSeats']} open seats!`
-          );
-        }
-        // Someone took a seat
-        else if (currentStatus['status'] == "OPEN" && currentStatus['availableSeats'] < previousStatus['availableSeats']) {
-          new Notification({ 
-            title: watchedCourses[courseId].courseDesignation, 
-            body: `Someone just enrolled: ${watchedCourses[courseId].title}, there are now ${currentStatus['availableSeats']} open seats!` 
-          }).show();
-          
-          sendiMessageNotification(
-            `🚨${watchedCourses[courseId].courseDesignation} Someone just enrolled!🚨 ` +
-            `${watchedCourses[courseId].title} there are now ${currentStatus['availableSeats']} open seats!`
-          );
-        }
+        sendiMessageNotification(
+          `🚨${watchedCourses[courseId].courseDesignation} ${currentStatus['status']}!🚨 ` +
+          `${watchedCourses[courseId].title} is ${currentStatus['status']}`
+        );
+      }
+      // Someone dropped a seat
+      else if (currentStatus['status'] == "OPEN" && currentStatus['availableSeats'] > previousStatus['availableSeats']) {
+        new Notification({ 
+          title: watchedCourses[courseId].courseDesignation, 
+          body: `Someone just dropped: ${watchedCourses[courseId].title} – there are now ${currentStatus['availableSeats']} open seats!` 
+        }).show();
         
-        availableSeats += currentStatus['availableSeats'];
+        sendiMessageNotification(
+          `🚨${watchedCourses[courseId].courseDesignation} Someone just dropped!🚨 ` +
+          `${watchedCourses[courseId].title} there are now ${currentStatus['availableSeats']} open seats!`
+        );
+      }
+      // Someone took a seat
+      else if (currentStatus['status'] == "OPEN" && currentStatus['availableSeats'] < previousStatus['availableSeats']) {
+        new Notification({ 
+          title: watchedCourses[courseId].courseDesignation, 
+          body: `Someone just enrolled: ${watchedCourses[courseId].title}, there are now ${currentStatus['availableSeats']} open seats!` 
+        }).show();
         
-        // Save the updated data
-        watchedCourses[courseId].data = detailedCourseData;
-        configManager.saveWatchedCourse(courseId, watchedCourses[courseId]);
+        sendiMessageNotification(
+          `🚨${watchedCourses[courseId].courseDesignation} Someone just enrolled!🚨 ` +
+          `${watchedCourses[courseId].title} there are now ${currentStatus['availableSeats']} open seats!`
+        );
       }
       
-      // Send update to the UI
-      mainWindow.webContents.send('course-update', { courseId, status: results, availableSeats });
-    } catch (error) {
-      console.error("Error in watchCourse interval:", error);
+      availableSeats += currentStatus['availableSeats'];
+      
+      // Save the updated data
+      watchedCourses[courseId].data = detailedCourseData;
+      configManager.saveWatchedCourse(courseId, watchedCourses[courseId]);
     }
-  }, 10000); // Poll every 10 seconds
+    
+    // Send update to the UI
+    mainWindow.webContents.send('course-update', { courseId, status: results, availableSeats });
+  } catch (error) {
+    console.error("Error in watchCourse interval:", error);
+  }
 }

@@ -4,19 +4,18 @@
   <img src="badgerwatcher.png" width="120" height="120" alt="BadgerWatcher Logo">
 </p>
 
-An app to watch status for UW-Madison courses. Runs locally with an Electron app making requests to the wisc.edu enrollment API. Desktop notifications are enabled however some setup is required for SMS/iMessage notifications.
+A desktop application that monitors and tracks course availability at the University of Wisconsin-Madison. BadgerWatcher provides real-time notifications about course status changes, allowing students to quickly respond to openings in high-demand classes.
 
-## Features
+## Key Features
 
-- 🔍 Search for UW-Madison courses 
-- 👀 Track multiple courses simultaneouslyg
-- 🔔 Real-time notifications when course status changes 
-- 📱 SMS/iMessage notifications (when running on macOS only)
-- 📊 Historical grade distributions for courses
-- 🎓 Professor history and term-by-term grade analysis
-- 🎚️ Change terms (Fall, Spring, Summer)
-- 💾 Persistent settings and course tracking
-- Runs Locally
+- **Real-time Course Monitoring** - Track multiple courses simultaneously with automatic status refreshing
+- **Smart Notifications** - Receive desktop alerts and optional iMessage notifications when courses open
+- **Course Analytics** - View historical grade distributions and instructor performance metrics
+- **Alternative Course Recommendations** - Get suggestions for similar courses when your preferred section is full
+- **Textbook Information** - Access required and optional course materials with direct purchase links
+- **Enhanced Course Details** - View comprehensive information including prerequisites, learning outcomes, and meeting schedules
+- **Term Selection** - Easily switch between different academic terms (Fall, Spring, Summer)
+- **Persistent Data** - Settings and watched courses are automatically saved between sessions
 
 ## Screenshots
 
@@ -43,67 +42,104 @@ npm install
 npm start
 ```
 
-## How to Use
+For macOS users who want a standalone app:
+```bash
+# Package the app for macOS
+npm run package
+```
 
-1. **Launch the app**: Run the app using `npm start`
-2. **Select a term**: Choose the academic term you want to track (Fall, Spring, Summer)
-3. **Search for courses**: Type course names or numbers in the search bar
-4. **Track courses**: Click the eye icon to start watching a course
-5. **Monitor status**: The app will show current status (Open, Waitlisted, Closed) with seat counts
-6. **View grade history**: Click the chart icon next to any course to view historical grade distributions
-7. **Get notifications**: You'll receive desktop notifications when course status changes
+## Usage Guide
 
-## Grade Distribution Feature
+1. **Launch the app**: Run the app using `npm start` or open the packaged application
+2. **Select a term**: Choose the academic term you wish to monitor using the dropdown menu
+3. **Search for courses**: Enter course codes or keywords in the search bar (e.g., "COMP SCI 540")
+4. **Add to watchlist**: Click the eye icon next to search results to begin monitoring
+5. **View details**: Click on any watched course to see comprehensive information including:
+   - Current enrollment status and available seats
+   - Meeting times and locations
+   - Instructor information
+   - Prerequisites and course requirements
+   - Grade distribution history
+   - Required textbooks and materials
+   - Similar course alternatives
+6. **Receive notifications**: Get alerts when course status changes or seats become available
 
-View historical course grades to help you make informed decisions:
+## Features in Detail
 
-- **Grade Charts**: Visualize the distribution of grades (A-F) for any course
-- **GPA Metrics**: See the average GPA for the course over its entire history
-- **Instructor Analysis**: Compare how different instructors grade the same course
-- **Term Comparisons**: View semester-by-semester breakdowns to identify trends
-- **Statistical Insights**: Analyze A-rates and other performance metrics
+### Course Monitoring
+BadgerWatcher checks the UW-Madison enrollment system every few seconds to detect changes in course availability, including:
+- Courses changing from closed to open
+- Students dropping seats in a course
+- New seats being added to a section
 
-To access grade data:
-1. Add a course to your watchlist
-2. Click the chart icon (📊) next to the course
-3. Switch to the "Grade Distribution" tab
+### Grade Distribution Analytics
+Access historical performance data to make informed course decisions:
+- Visualized grade distributions across semesters
+- Average GPA and success rates
+- Instructor-specific performance metrics
+- Term-by-term comparisons
 
+### Textbook Information
+BadgerWatcher automatically retrieves and displays course material information:
+- Required and optional textbooks
+- Direct links to purchase options (UW Bookstore, Amazon, Chegg)
+- Additional course materials and resources
 
-## iMessage Notifications (macOS only)
+### Similar Course Recommendations
+When your preferred course is unavailable, BadgerWatcher helps you find alternatives:
+- Courses in the same subject area and level
+- Real-time availability information
+- One-click addition to your watchlist
+
+### Prerequisite Parsing
+Complex prerequisite requirements are clearly displayed with visual formatting for:
+- Course chains and alternatives
+- Cross-listed courses
+- Standing requirements (Junior, Senior, etc.)
+
+## Notification Setup (macOS only)
 
 To receive iMessage notifications:
-1. Go to Settings (gear icon)
-2. Add your phone number
-3. Save settings
+1. Navigate to Settings (gear icon)
+2. Add phone numbers to the notification list
+3. Click "Save Changes"
+4. Test the setup using the "Send Test" button
 
-## Configuration
+## Configuration and Data Storage
 
-Settings are saved to app-config.json and include:
-- Selected term
-- Phone numbers for notifications
-- Watched courses
-- MadGrades API key (optional)
+BadgerWatcher stores its settings in app-config.json, which contains:
+- Selected academic term
+- Notification phone numbers
+- Watched course list
+- API keys for external services
+
+## Technologies
+
+- Electron.js - Cross-platform desktop framework
+- Node.js - JavaScript runtime
+- Chart.js - Data visualization library
+- UW-Madison Enrollment API - Course data
+- MadGrades API - Historical grade data
 
 ## Requirements
 
-- Node.js
-- npm
-- Chart.js (automatically installed with npm)
-- macOS for iMessage notifications
+- Node.js (v14.0.0 or higher)
+- npm (v6.0.0 or higher)
+- macOS for iMessage notifications (optional)
 
-## Contributing
+## License
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Acknowledgments
 
-- University of Wisconsin-Madison for the public course API
+- University of Wisconsin-Madison for the public enrollment API
 - MadGrades API for historical course grade data
 
 ## Disclaimer
 
-This app is not affiliated with, endorsed by, or sponsored by the University of Wisconsin-Madison. Use at your own risk.
+This application is not affiliated with, endorsed by, or sponsored by the University of Wisconsin-Madison. It is an independent tool created to help students monitor course availability. Use at your own discretion.
 
 ---
 
-By: Sooraj Gupta 2025
+© 2025 Sooraj Gupta | MIT License
