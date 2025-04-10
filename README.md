@@ -1,6 +1,3 @@
-Collecting workspace informationHere's an updated README.md that reflects the grade distribution feature we just added to BadgerWatcher:
-
-```markdown
 # BadgerWatcher
 
 <p align="center">
@@ -23,7 +20,16 @@ An app to watch status for UW-Madison courses. Runs locally with an Electron app
 
 ## Screenshots
 
+### Main Interface
 ![BadgerWatcher Screenshot](screenshot.png)
+
+### Grade Distribution Feature
+![Grade Distribution](grade_distribution.png)
+*View detailed historical grade data for any course*
+
+### Term-by-Term Breakdown
+![Term Breakdown](term_breakdown_screenshot.png)
+*See how grades vary by instructor and semester*
 
 ## Installation
 
@@ -54,10 +60,19 @@ npm start
 ## Grade Distribution Feature
 
 View historical course grades to help you make informed decisions:
-- See average GPA for any course over time
-- Compare instructor grading patterns
-- Analyze A-rate percentages across different semesters
-- View detailed term-by-term breakdown of grades
+
+- **Grade Charts**: Visualize the distribution of grades (A-F) for any course
+- **GPA Metrics**: See the average GPA for the course over its entire history
+- **Instructor Analysis**: Compare how different instructors grade the same course
+- **Term Comparisons**: View semester-by-semester breakdowns to identify trends
+- **Statistical Insights**: Analyze A-rates and other performance metrics
+
+To access grade data:
+1. Add a course to your watchlist
+2. Click the chart icon (📊) next to the course
+3. Switch to the "Grade Distribution" tab
+
+![Grade Distribution Feature](grade_feature_annotated.png)
 
 ## iMessage Notifications (macOS only)
 
@@ -72,6 +87,7 @@ Settings are saved to app-config.json and include:
 - Selected term
 - Phone numbers for notifications
 - Watched courses
+- MadGrades API key (optional)
 
 ## Requirements
 
