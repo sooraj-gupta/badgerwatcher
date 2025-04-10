@@ -68,7 +68,6 @@ To access grade data:
 2. Click the chart icon (📊) next to the course
 3. Switch to the "Grade Distribution" tab
 
-![Grade Distribution Feature](grade_feature_annotated.png)
 
 ## iMessage Notifications (macOS only)
 
