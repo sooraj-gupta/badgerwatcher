@@ -9,7 +9,7 @@ An app to watch status for UW-Madison courses. Runs locally with an Electron app
 ## Features
 
 - 🔍 Search for UW-Madison courses 
-- 👀 Track multiple courses simultaneously
+- 👀 Track multiple courses simultaneouslyg
 - 🔔 Real-time notifications when course status changes 
 - 📱 SMS/iMessage notifications (when running on macOS only)
 - 📊 Historical grade distributions for courses
@@ -26,10 +26,6 @@ An app to watch status for UW-Madison courses. Runs locally with an Electron app
 ### Grade Distribution Feature
 ![Grade Distribution](grade_distribution.png)
 *View detailed historical grade data for any course*
-
-### Term-by-Term Breakdown
-![Term Breakdown](term_breakdown_screenshot.png)
-*See how grades vary by instructor and semester*
 
 ## Installation
 
